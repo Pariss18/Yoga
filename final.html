@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Yoga - Naadi Shodhan Pranyama</title>
+    <style>
+        :root { --primary: #4a7c59; --secondary: #2c3e50; --accent: #8fa998; --bg: #f4f7f6; --danger: #e74c3c; --highlight: #2ecc71; }
+        
+        /* Edge-to-edge layout */
+        html, body { 
+            width: 100%; height: 100%; margin: 0; padding: 0; 
+            overflow: hidden; background: var(--bg); font-family: 'Segoe UI', sans-serif; 
+        }
+
+        .app-container { 
+            width: 100%; height: 100vh; background: white; 
+            display: flex; flex-direction: column; text-align: center;
+            border: none !important; /* REMOVED THE BLACK FRAME */
+            border-radius: 0 !important; /* REMOVED THE ROUNDED CORNERS */
+            box-shadow: none !important; /* REMOVED THE SHADOW */
+        }
+
+        .header { background: var(--primary); color: white; padding: 20px 0; font-size: 24px; font-weight: bold; letter-spacing: 2px; }
+        .sub-header { background: #f9f9f9; color: var(--secondary); padding: 12px; font-size: 14px; font-weight: bold; border-bottom: 1px solid #ddd; text-transform: uppercase; }
+        #naadi-shodhan-page { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-evenly; }
+        .clock { font-size: 32px; color: var(--secondary); margin: 5px 0; font-weight: 300; }
+        #cycle-num { color: var(--primary); font-size: 36px; display: block; font-weight: bold; }
+        .box-container { display: flex; justify-content: center; gap: 15px; margin: 15px 0; }
+        .small-box { width: 100px; height: 100px; color: white; border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.3s; opacity: 0.3; position: relative; overflow: hidden; }
+        .active-box { opacity: 1; transform: scale(1.05); }
+        .progress-bar { position: absolute; bottom: 0; left: 0; height: 100%; width: 100%; background: rgba(255,255,255,0.2); transform-origin: bottom; transition: transform 1s linear; z-index: 1; }
+        .btn-group { display: flex; flex-direction: column; gap: 12px; padding: 20px; }
+        button { padding: 16px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 15px; }
+        .btn-start { background: var(--primary); color: white; }
+        .btn-stop { background: var(--danger); color: white; display: none; }
+        .btn-reset { background: #eee; color: #777; font-size: 11px; padding: 8px 15px; margin: 5px auto; width: fit-content; }
+        #status-msg { height: 35px; color: var(--primary); font-weight: bold; font-size: 20px; }
+        #input-area { margin: 15px; padding: 15px; background: #f0fff4; border-radius: 12px; border: 2px dashed var(--highlight); display: none; }
+        input { width: 80px; font-size: 24px; text-align: center; border: 2px solid var(--primary); border-radius: 8px; padding: 8px; }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="header">YOGA</div>
+    <div class="sub-header">NAADI SHODHAN</div>
+    <div id="naadi-shodhan-page">
+        <div>
+            <div id="clock" class="clock">00:00:00</div>
+            <div class="counter-box">COMPLETED CYCLES <span id="cycle-num">0</span>
+                <button id="btn-reset" class="btn-reset" onclick="resetCounter()">RESET COUNT</button>
+            </div>
+            <div id="status-msg">Ready</div>
+        </div>
+        <div class="box-container">
+            <div id="box-inhale" class="small-box" style="background: var(--primary);"><div id="progress-inhale" class="progress-bar" style="transform: scaleY(0);"></div><span class="box-label">INHALE</span><span id="v-inhale" class="box-value">1</span></div>
+            <div id="box-hold" class="small-box" style="background: var(--secondary);"><div id="progress-hold" class="progress-bar" style="transform: scaleY(0);"></div><span class="box-label">HOLD</span><span id="v-hold" class="box-value">4</span></div>
+            <div id="box-exhale" class="small-box" style="background: var(--accent);"><div id="progress-exhale" class="progress-bar" style="transform: scaleY(0);"></div><span class="box-label">EXHALE</span><span id="v-exhale" class="box-value">2</span></div>
+        </div>
+        <div id="input-area"><strong>Inhale (Seconds):</strong><br><input type="number" id="user-inhale" value="1" min="1"><button style="background:var(--highlight); color:white; width:100%; margin-top:10px;" onclick="confirmCustomValues()">OK</button></div>
+        <div class="btn-group">
+            <button id="btn-default" onclick="setDefault()">DEFAULT (1:4:2)</button>
+            <button id="btn-change" onclick="showInputArea()">CHANGE DURATION</button>
+            <button id="btn-start" class="btn-start" onclick="startSequence()">START SESSION</button>
+            <button id="btn-stop" class="btn-stop" onclick="stopSequence()">STOP SESSION</button>
+        </div>
+    </div>
+</div>
+<script>
+    let inhaleVal = 1; let cycles = 0; let isRunning = false; const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playStrongBeep(isNewCycle = false) { const duration = 0.2; const freq = isNewCycle ? 1000 : 850; function createTone(timeOffset) { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'square'; osc.frequency.setValueAtTime(freq, audioCtx.currentTime + timeOffset); gain.gain.setValueAtTime(0.1, audioCtx.currentTime + timeOffset); gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + timeOffset + duration); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(audioCtx.currentTime + timeOffset); osc.stop(audioCtx.currentTime + timeOffset + duration); } createTone(0); if (isNewCycle) createTone(0.25); }
+    function updateClock() { const options = { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }; document.getElementById('clock').innerText = new Intl.DateTimeFormat('en-IN', options).format(new Date()); }
+    setInterval(updateClock, 1000);
+    function resetCounter() { cycles = 0; document.getElementById('cycle-num').innerText = cycles; }
+    function setDefault() { inhaleVal = 1; document.getElementById('v-inhale').innerText = 1; document.getElementById('v-hold').innerText = 4; document.getElementById('v-exhale').innerText = 2; document.getElementById('input-area').style.display = 'none'; }
+    function showInputArea() { document.getElementById('input-area').style.display = 'block'; }
+    function confirmCustomValues() { const newVal = parseInt(document.getElementById('user-inhale').value); if (newVal > 0) { inhaleVal = newVal; document.getElementById('v-inhale').innerText = inhaleVal; document.getElementById('v-hold').innerText = inhaleVal * 4; document.getElementById('v-exhale').innerText = inhaleVal * 2; document.getElementById('input-area').style.display = 'none'; } }
+    async function startSequence() { if (audioCtx.state === 'suspended') audioCtx.resume(); isRunning = true; document.getElementById('btn-start').style.display = 'none'; document.getElementById('btn-stop').style.display = 'block'; for(let i=3; i>0; i--) { if(!isRunning) return; document.getElementById('status-msg').innerText = `Prepare: ${i}`; await new Promise(r => setTimeout(r, 1000)); } runBreathingLoop(); }
+    async function runBreathingLoop() { const phases = [{ id: 'box-inhale', prog: 'progress-inhale', label: 'INHALING', time: inhaleVal }, { id: 'box-hold', prog: 'progress-hold', label: 'HOLDING', time: inhaleVal * 4 }, { id: 'box-exhale', prog: 'progress-exhale', label: 'EXHALING', time: inhaleVal * 2 }]; while(isRunning) { for(let phase of phases) { if(!isRunning) return; playStrongBeep(phase.id === 'box-inhale'); document.querySelectorAll('.small-box').forEach(b => b.classList.remove('active-box')); document.getElementById(phase.id).classList.add('active-box'); for(let t = phase.time; t > 0; t--) { if(!isRunning) return; document.getElementById('status-msg').innerText = `${phase.label}: ${t}s`; document.getElementById(phase.prog).style.transform = `scaleY(${t / phase.time})`; await new Promise(r => setTimeout(r, 1000)); } document.getElementById(phase.prog).style.transform = 'scaleY(0)'; } cycles++; document.getElementById('cycle-num').innerText = cycles; } }
+    function stopSequence() { isRunning = false; document.getElementById('btn-start').style.display = 'block'; document.getElementById('btn-stop').style.display = 'none'; document.querySelectorAll('.small-box').forEach(b => b.classList.remove('active-box')); document.getElementById('status-msg').innerText = "Stopped"; }
+</script>
+</body>
+</html>
